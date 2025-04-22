@@ -1,3 +1,5 @@
+// Component Header
+
 import React from "react";
 import Navbar from "react-bootstrap/Navbar";
 import Nav from "react-bootstrap/Nav";
@@ -5,7 +7,7 @@ import { useContext } from "react";
 import { AuthContext } from "../context/Auth";
 
 export const Header = () => {
-  const {logout} = useContext(AuthContext); // Assuming you have a logout function in your Auth context
+  const { user, logout } = useContext(AuthContext);
   return (
     <header>
       <div className="container">
@@ -16,9 +18,11 @@ export const Header = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto">
-              <Nav.Link className="nav-link">
-                Home
-              </Nav.Link>
+              {user && (
+                <Nav.Link className="nav-link text-dark fw-bold">
+                  {user.name} | {user.group_role}
+                </Nav.Link>
+              )}
               <Nav.Link className="nav-link" onClick={logout}>
                 Đăng xuất
               </Nav.Link>

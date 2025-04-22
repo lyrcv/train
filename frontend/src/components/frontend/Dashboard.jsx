@@ -1,3 +1,5 @@
+// Component dashboard hiển thị menu điều hướng cho người dùng
+
 import React from 'react'
 import { Link } from 'react-router-dom'
 

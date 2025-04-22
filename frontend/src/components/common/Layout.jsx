@@ -1,3 +1,5 @@
+// Layout chứa Header, Footer và chia nội dung chính của web
+
 import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
