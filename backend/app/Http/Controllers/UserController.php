@@ -8,17 +8,20 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-    //  Hiển thị danh sách người dùng (chưa bị xóa mềm)
     public function index(Request $request)
     {
+        $perPage = $request->input('per_page', 20); // Lấy số bản ghi mỗi trang, mặc định 20
+
         $users = User::where('is_delete', 0)
-            ->paginate(20); //phân trang mặc định 20 bản ghi
+            ->paginate($perPage);
+
         return response()->json($users);
     }
 
-    // Tìm kiếm người dùng
     public function search(Request $request)
     {
+        $perPage = $request->input('per_page', 20); // Dùng per_page từ request
+
         $query = User::where('is_delete', 0);
 
         if ($request->has('name')) {
@@ -29,9 +32,19 @@ class UserController extends Controller
             $query->where('email', 'like', '%' . $request->email . '%');
         }
 
-        $users = $query->paginate(20);
+        if ($request->has('group') && $request->group != '') {
+            $query->where('group_role', $request->group);
+        }
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('is_active', $request->status);
+        }
+
+        $users = $query->paginate($perPage);
+
         return response()->json($users);
     }
+
 
     // Thêm mới người dùng
     public function store(Request $request)
@@ -40,6 +53,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'group_role' => 'required|string'
         ]);
 
         if ($validator->fails()) {
@@ -53,6 +67,13 @@ class UserController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = bcrypt($request->password);
+        $user->group_role = $request->group_role;
+        $user->is_active = $request->has('is_active') ? $request->is_active : 1; // Mặc định là 1 (kích hoạt)
+        $user->is_delete = 0; // Mặc định là 0 (chưa xóa)
+        $user->last_login_at = null; // Mặc định là null
+        $user->last_login_ip = null; // Mặc định là null
+        $user->created_at = now(); // Thời gian tạo
+        $user->updated_at = now(); // Thời gian cập nhật
         $user->save();
 
         return response()->json([
@@ -76,6 +97,7 @@ class UserController extends Controller
 
         $user->name = $request->has('name') ? $request->name : $user->name;
         $user->email = $request->has('email') ? $request->email : $user->email;
+        $user->group_role = $request->has('group_role') ? $request->group_role : $user->group_role;
         $user->save();
 
         return response()->json([

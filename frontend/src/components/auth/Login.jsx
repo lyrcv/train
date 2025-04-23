@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { apiUrl } from "../common/http";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import $ from "jquery";
 import { AuthContext } from "../context/Auth";
 import "../../assets/css/Login.scss";
 
@@ -24,20 +25,14 @@ export const Login = () => {
 
   // Hàm xử lý khi submit form
   const onSubmit = async (data) => {
-    // Debug data form 
-    console.log(data);
+    console.log(data); // Debug form data
 
-    // Gọi API login
-    await fetch(`${apiUrl}login`, {
+    $.ajax({
+      url: `${apiUrl}login`,
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data), // Chuyển đổi data thành JSON
-    })
-      .then((res) => res.json())
-      .then((result) => {
-        // Nếu login thành công
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (result) {
         if (parseInt(result.status) === 200) {
           const userInfo = {
             token: result.token,
@@ -46,21 +41,40 @@ export const Login = () => {
             group_role: result.user.group_role,
           };
 
-          // Xử lí remember me, chọn nhớ lưu local, không chọn lưu session
+          // Lưu thông tin người dùng vào localStorage hoặc sessionStorage tùy vào checkbox
           if (data.remember) {
             localStorage.setItem("userInfo", JSON.stringify(userInfo));
           } else {
             sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
           }
 
-          // Cập nhật login trong AuthContext
+          // Gọi hàm login từ AuthContext để cập nhật trạng thái đăng nhập
           login(userInfo, data.remember);
           navigate("/users");
         } else {
-          // Hiển thị toast báo lỗi
-          toast.error(result.message);
+          toast.error(result.message); // Hiển thị thông báo lỗi từ server
         }
-      });
+      },
+      error: function (xhr) {
+        const response = xhr.responseJSON;
+
+        // Ưu tiên hiển thị message từ server
+        if (response?.message) {
+          toast.error(response.message);
+        }
+
+        // Validate lỗi từ server
+        if (response?.errors) {
+          const errorList = Object.values(response.errors).flat();
+          errorList.forEach((err) => toast.error(err));
+        }
+
+        // Trường hợp không xác định được lỗi
+        if (!response?.message && !response?.errors) {
+          toast.error("Có lỗi xảy ra khi đăng nhập.");
+        }
+      },
+    });
   };
 
   return (

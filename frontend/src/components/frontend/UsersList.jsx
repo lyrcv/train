@@ -3,14 +3,24 @@ import { Layout } from "../common/Layout";
 import { toast } from "react-toastify";
 import "../../assets/css/UsersList.scss";
 import { apiUrl } from "../common/http";
+import PaginationControl from "./PaginationControl";
+import $ from "jquery";
 
 export const UsersList = () => {
-  // Khai báo state để lưu danh sách người dùng, phân trang, và các thông tin tìm kiếm
+  // Danh sách người dùng
   const [users, setUsers] = useState([]);
+
+  // Thông tin phân trang gồm trang hiện tại, tổng trang, số bản ghi
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
+    perPage: 20,
   });
+
+  // Số lượng bản ghi mỗi trang, mặc định 20
+  const [perPage, setPerPage] = useState(20);
+
+  // Bộ lọc tìm kiếm người dùng
   const [search, setSearch] = useState({
     name: "",
     email: "",
@@ -18,77 +28,140 @@ export const UsersList = () => {
     status: "",
   });
 
-  // Hàm fetch dữ liệu người dùng từ API với các tham số tìm kiếm
-  const fetchUsers = async (page = 1) => {
-    try {
-      // Gửi request tới API để lấy danh sách người dùng theo trang và các tham số tìm kiếm
-      const response = await fetch(
-        `${apiUrl}/users?page=${page}&name=${search.name}&email=${search.email}&group=${search.group}&status=${search.status}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer $("token")}`,  // Cần thay thế đúng với token người dùng
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // Kiểm tra nếu response không hợp lệ
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const result = await response.json();  // Chuyển dữ liệu trả về thành JSON
-      setUsers(result.data);  // Lưu dữ liệu người dùng vào state
-      setPagination({
-        currentPage: result.current_page,
-        totalPages: result.last_page,  // Cập nhật phân trang
-      });
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Có lỗi xảy ra khi lấy dữ liệu người dùng.");  // Thông báo lỗi nếu không lấy được dữ liệu
-    }
+  // Lấy token từ localStorage hoặc sessionStorage
+  const getToken = () => {
+    const userInfo =
+      JSON.parse(localStorage.getItem("userInfo")) ||
+      JSON.parse(sessionStorage.getItem("userInfo"));
+    return userInfo?.token || null;
   };
 
-  // Sử dụng useEffect để gọi fetchUsers khi thông tin tìm kiếm thay đổi
-  useEffect(() => {
-    fetchUsers();
-  }, [search]);
+  // Hàm lấy danh sách người dùng từ API
+  const fetchUsers = (page = 1) => {
+    const token = getToken();
+    const hasFilter =
+      search.name || search.email || search.group || search.status;
 
-  // Hàm xử lý khi thay đổi giá trị trong ô tìm kiếm
+    // Nếu có filter thì gọi endpoint /users/search, ngược lại là /users
+    const endpoint = hasFilter ? "users/search" : "users";
+
+    // Dữ liệu query gửi lên API
+    const query = {
+      page: page,
+      per_page: perPage,
+      name: search.name,
+      email: search.email,
+      group: search.group,
+      status: search.status,
+    };
+
+    // Gọi Ajax API
+    $.ajax({
+      url: `${apiUrl}${endpoint}`,
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      data: query,
+      success: function (result) {
+        // Nếu trang hiện tại > tổng trang, quay lại trang cuối
+        if (result.current_page > result.last_page) {
+          fetchUsers(result.last_page);
+          return;
+        }
+
+        // Cập nhật danh sách và trạng thái phân trang
+        setUsers(result.data);
+        setPagination({
+          currentPage: result.current_page,
+          totalPages: result.last_page,
+          perPage: perPage,
+        });
+      },
+      error: function (xhr, status, error) {
+        console.error("Lỗi Ajax:", error);
+        toast.error("Không thể tải danh sách người dùng.");
+      },
+    });
+
+    // Xóa mềm người dùng
+  };
+
+  // Khi thay đổi perPage -> tính lại trang phù hợp để giữ đúng bản ghi đang xem
+  useEffect(() => {
+    const offset = (pagination.currentPage - 1) * pagination.perPage;
+    const newPage = Math.floor(offset / perPage) + 1;
+    fetchUsers(newPage);
+    // eslint-disable-next-line
+  }, [perPage]);
+
+  // Cập nhật giá trị tìm kiếm khi nhập
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    setSearch((prevSearch) => ({
-      ...prevSearch,
-      [name]: value,  // Cập nhật state tìm kiếm với giá trị mới
-    }));
+    setSearch((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Hàm xử lý khi nhấn nút "Tìm kiếm"
+  // Tìm kiếm người dùng
   const handleSearchClick = () => {
-    fetchUsers(1);  // Lấy dữ liệu từ trang 1 với các bộ lọc tìm kiếm
+    fetchUsers(1);
   };
 
-  // Hàm xử lý khi nhấn nút "Xóa tìm"
+  // Xóa bộ lọc tìm kiếm và load lại trang đầu
   const handleClearSearch = () => {
-    setSearch({ name: "", email: "", group: "", status: "" });  // Reset bộ lọc tìm kiếm
-    fetchUsers(1);  // Lấy lại danh sách người dùng từ trang 1 mà không có bộ lọc
+    setSearch({ name: "", email: "", group: "", status: "" });
+    fetchUsers(1);
+  };
+  const handleDelete = (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa người dùng này?")) return;
+
+    $.ajax({
+      url: `${apiUrl}users/${id}`,
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+      success: function () {
+        toast.success("Đã xóa người dùng.");
+        fetchUsers(pagination.currentPage);
+      },
+      error: function () {
+        toast.error("Xóa người dùng thất bại.");
+      },
+    });
+  };
+
+  // Khóa hoặc mở khóa tài khoản
+  const handleToggleActive = (id) => {
+    $.ajax({
+      url: `${apiUrl}users/toggle-active/${id}`,
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+      success: function (res) {
+        toast.success(res.message);
+        fetchUsers(pagination.currentPage);
+      },
+      error: function () {
+        toast.error("Thao tác thất bại.");
+      },
+    });
   };
 
   return (
     <Layout>
       <main>
         <div className="user-list">
+          {/* Header*/}
           <div className="user-list__header d-flex justify-content-between align-items-center mb-4">
             <h3 className="title">📋 Danh sách người dùng</h3>
             <button className="btn btn-success shadow-sm">
-              <i className="fas fa-plus-circle me-2"></i>Thêm mới
+              <i className="fas fa-plus-circle me-2"></i>Thêm User
             </button>
           </div>
 
-          {/* Phần tìm kiếm người dùng */}
+          {/* Bộ lọc tìm kiếm */}
           <div className="row g-3 mb-4 user-list__filter">
             <div className="col-md-3">
               <input
@@ -118,9 +191,9 @@ export const UsersList = () => {
                 className="form-select"
               >
                 <option value="">Chọn nhóm</option>
-                <option value="Admin">Admin</option>
-                <option value="Editor">Editor</option>
-                <option value="Reviewer">Reviewer</option>
+                <option value="admin">Admin</option>
+                <option value="editor">Editor</option>
+                <option value="reviewer">Reviewer</option>
               </select>
             </div>
             <div className="col-md-2">
@@ -136,16 +209,41 @@ export const UsersList = () => {
               </select>
             </div>
             <div className="col-md-2 d-grid gap-2 d-md-block">
-              <button className="btn btn-primary me-2" onClick={handleSearchClick}>
+              <button
+                className="btn btn-primary me-2"
+                onClick={handleSearchClick}
+              >
                 Tìm kiếm
               </button>
-              <button className="btn btn-outline-secondary" onClick={handleClearSearch}>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={handleClearSearch}
+              >
                 Xóa tìm
               </button>
             </div>
           </div>
 
-          {/* Bảng hiển thị danh sách người dùng */}
+          {/* Hiển thị số bản ghi mỗi trang */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              Hiển thị
+              <select
+                className="mx-2"
+                value={perPage}
+                onChange={(e) => setPerPage(parseInt(e.target.value))}
+              >
+                {[5, 10, 15, 20, 25, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              đơn vị
+            </div>
+          </div>
+
+          {/* Bảng danh sách người dùng */}
           <div className="table-responsive shadow-sm rounded user-list__table">
             <table className="table table-bordered text-center align-middle table-hover">
               <thead className="table-primary">
@@ -160,9 +258,11 @@ export const UsersList = () => {
               </thead>
               <tbody>
                 {users.length > 0 ? (
-                  users.map((user) => (
+                  users.map((user, index) => (
                     <tr key={user.id}>
-                      <td>{user.id}</td>
+                      <td>
+                        {index + 1 + (pagination.currentPage - 1) * perPage}
+                      </td>
                       <td>{user.name}</td>
                       <td>{user.email}</td>
                       <td>{user.group_role}</td>
@@ -180,11 +280,18 @@ export const UsersList = () => {
                           <button className="btn btn-sm btn-warning">
                             <i className="fas fa-edit"></i> Sửa
                           </button>
-                          <button className="btn btn-sm btn-danger">
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDelete(user.id)}
+                          >
                             <i className="fas fa-trash-alt"></i> Xóa
                           </button>
-                          <button className="btn btn-sm btn-dark">
-                            <i className="fas fa-lock"></i> Khóa
+                          <button
+                            className="btn btn-sm btn-dark"
+                            onClick={() => handleToggleActive(user.id)}
+                          >
+                            <i className="fas fa-lock"></i>{" "}
+                            {user.is_active ? "Khóa" : "Mở"}
                           </button>
                         </div>
                       </td>
@@ -192,7 +299,7 @@ export const UsersList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6">Không có người dùng nào.</td>
+                    <td colSpan="6">Không có dữ liệu người dùng.</td>
                   </tr>
                 )}
               </tbody>
@@ -200,41 +307,11 @@ export const UsersList = () => {
           </div>
 
           {/* Phân trang */}
-          {pagination.totalPages > 1 && (
-            <nav className="mt-4">
-              <ul className="pagination justify-content-end">
-                <li
-                  className={`page-item ${
-                    pagination.currentPage === 1 ? "disabled" : ""
-                  }`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => fetchUsers(pagination.currentPage - 1)}
-                  >
-                    «
-                  </button>
-                </li>
-                <li className="page-item active">
-                  <button className="page-link">{pagination.currentPage}</button>
-                </li>
-                <li
-                  className={`page-item ${
-                    pagination.currentPage === pagination.totalPages
-                      ? "disabled"
-                      : ""
-                  }`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => fetchUsers(pagination.currentPage + 1)}
-                  >
-                    »
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          )}
+          <PaginationControl
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => fetchUsers(page)}
+          />
         </div>
       </main>
     </Layout>

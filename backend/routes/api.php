@@ -13,7 +13,8 @@ Route::post('/login', [AuthController::class, 'authenticate']);
 Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/users',[UserController::class, 'index']);
     Route::post('/users',[UserController::class, 'store']);
+    Route::get('/users/search', [UserController::class, 'search']);
     Route::put('/users/{id}',[UserController::class, 'update']);
     Route::delete('/users/{id}',[UserController::class, 'destroy']);
-    Route::get('/users/{id}',[UserController::class, 'toggleStatus']);
+    Route::put('/users/toggle-active/{id}',[UserController::class, 'toggleActive']);
 });
