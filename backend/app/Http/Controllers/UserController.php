@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 20); // Lấy số bản ghi mỗi trang, mặc định 20
+        $perPage = $request->input('per_page', 20); // Số bản ghi mỗi trang, mặc định 20
+        $currentUserId = Auth::user()->id; // Lấy ID người dùng đang đăng nhập
 
         $users = User::where('is_delete', 0)
+            ->where('id', '!=', $currentUserId) // Không hiển thị người dùng đang đăng nhập
+            ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo (mới nhất lên đầu)
             ->paginate($perPage);
 
         return response()->json($users);
@@ -54,6 +58,11 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'group_role' => 'required|string'
+        ], [
+            // Tùy chỉnh thông báo lỗi
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email được nhập đã đăng kí người dùng.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.'
         ]);
 
         if ($validator->fails()) {

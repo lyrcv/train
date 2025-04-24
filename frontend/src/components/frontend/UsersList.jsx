@@ -5,6 +5,7 @@ import "../../assets/css/UsersList.scss";
 import { apiUrl } from "../common/http";
 import PaginationControl from "./PaginationControl";
 import $ from "jquery";
+import Swal from "sweetalert2";
 
 export const UsersList = () => {
   // Danh sách người dùng
@@ -112,42 +113,193 @@ export const UsersList = () => {
     setSearch({ name: "", email: "", group: "", status: "" });
     fetchUsers(1);
   };
-  const handleDelete = (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa người dùng này?")) return;
 
-    $.ajax({
-      url: `${apiUrl}users/${id}`,
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
+  // Thêm mới người dùng
+  const handleAddUser = () => {
+    Swal.fire({
+      title: "Thêm người dùng mới",
+      html: `
+        <input id="swal-name" class="swal2-input" placeholder="Tên">
+        <input id="swal-email" class="swal2-input" placeholder="Email">
+        <input id="swal-password" type="password" class="swal2-input" placeholder="Mật khẩu">
+        <select id="swal-role" class="swal2-input">
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+          <option value="reviewer" selected>Reviewer</option>
+        </select>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Thêm",
+      cancelButtonText: "Hủy",
+      preConfirm: () => {
+        const name = document.getElementById("swal-name").value;
+        const email = document.getElementById("swal-email").value;
+        const password = document.getElementById("swal-password").value;
+        const group_role = document.getElementById("swal-role").value;
+  
+        if (!name || !email || !password || !group_role) {
+          Swal.showValidationMessage("Vui lòng điền đầy đủ thông tin.");
+          return false;
+        }
+  
+        return { name, email, password, group_role };
       },
-      success: function () {
-        toast.success("Đã xóa người dùng.");
-        fetchUsers(pagination.currentPage);
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${apiUrl}users`,
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+            "Content-Type": "application/json",
+          },
+          data: JSON.stringify(result.value),
+          success: function (res) {
+            toast.success(res.message);
+            fetchUsers(pagination.currentPage);
+          },
+          error: function (xhr) {
+            const res = xhr.responseJSON;
+            if (res?.errors) {
+              const errorText = Object.values(res.errors).flat().join("<br>");
+              Swal.fire({
+                title: "Lỗi",
+                html: errorText,
+                icon: "error",
+              }).then(() => {
+                handleAddUser(result.value, errorText);
+              });
+            } else {
+              toast.error("Thêm người dùng thất bại.");
+            }
+          },
+        });
+      }
+    });
+  };  
+
+  // Sửa người dùng
+  const handleEditUser = (user) => {
+    Swal.fire({
+      title: "Chỉnh sửa người dùng",
+      html: `
+        <input id="swal-name" class="swal2-input" placeholder="Tên" value="${user.name}">
+        <input id="swal-email" class="swal2-input" value="${user.email}" disabled>
+        <select id="swal-role" class="swal2-input" disabled>
+          <option value="admin" ${user.group_role === "admin" ? "selected" : ""}>Admin</option>
+          <option value="editor" ${user.group_role === "editor" ? "selected" : ""}>Editor</option>
+          <option value="reviewer" ${user.group_role === "reviewer" ? "selected" : ""}>Reviewer</option>
+        </select>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Cập nhật",
+      cancelButtonText: "Hủy",
+      preConfirm: () => {
+        const name = document.getElementById("swal-name").value;
+  
+        if (!name) {
+          Swal.showValidationMessage("Tên không được để trống.");
+          return false;
+        }
+  
+        return { name }; // chỉ cập nhật name thôi
       },
-      error: function () {
-        toast.error("Xóa người dùng thất bại.");
-      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${apiUrl}users/${user.id}`,
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+            "Content-Type": "application/json",
+          },
+          data: JSON.stringify(result.value),
+          success: function (res) {
+            toast.success(res.message);
+            fetchUsers(pagination.currentPage);
+          },
+          error: function () {
+            toast.error("Cập nhật thất bại.");
+          },
+        });
+      }
     });
   };
+  
+
+  // Xóa người dùng
+  const handleDelete = (id, name, groupRole) => {
+    if (groupRole === 'admin') {
+      toast.error("Không thể xóa người dùng có quyền Admin.");
+      return;
+    }
+  
+    Swal.fire({
+      title: "Xác nhận xóa",
+      text: `Bạn có chắc chắn muốn xóa người dùng "${name}"?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${apiUrl}users/${id}`,
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          success: function () {
+            toast.success("Đã xóa người dùng.");
+            fetchUsers(pagination.currentPage);
+          },
+          error: function () {
+            toast.error("Xóa người dùng thất bại.");
+          },
+        });
+      }
+    });
+  };
+  
 
   // Khóa hoặc mở khóa tài khoản
-  const handleToggleActive = (id) => {
-    $.ajax({
-      url: `${apiUrl}users/toggle-active/${id}`,
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-      success: function (res) {
-        toast.success(res.message);
-        fetchUsers(pagination.currentPage);
-      },
-      error: function () {
-        toast.error("Thao tác thất bại.");
-      },
+  const handleToggleActive = (id, isActive, name, groupRole) => {
+    if (groupRole === 'admin') {
+      toast.error("Không thể khóa hoặc mở khóa tài khoản người dùng Admin.");
+      return;
+    }
+  
+    Swal.fire({
+      title: isActive ? "Khóa tài khoản?" : "Mở khóa tài khoản?",
+      text: isActive
+        ? `Bạn có chắc chắn muốn khóa tài khoản "${name}" không?`
+        : `Bạn có chắc chắn muốn mở khóa tài khoản "${name}" không?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: isActive ? "Khóa" : "Mở khóa",
+      cancelButtonText: "Hủy",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${apiUrl}users/toggle-active/${id}`,
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          success: function (res) {
+            toast.success(res.message);
+            fetchUsers(pagination.currentPage);
+          },
+          error: function () {
+            toast.error("Thao tác thất bại.");
+          },
+        });
+      }
     });
   };
+  
 
   return (
     <Layout>
@@ -156,7 +308,10 @@ export const UsersList = () => {
           {/* Header*/}
           <div className="user-list__header d-flex justify-content-between align-items-center mb-4">
             <h3 className="title">📋 Danh sách người dùng</h3>
-            <button className="btn btn-success shadow-sm">
+            <button 
+              className="btn btn-success shadow-sm"
+              onClick={handleAddUser}
+            >
               <i className="fas fa-plus-circle me-2"></i>Thêm User
             </button>
           </div>
@@ -253,6 +408,7 @@ export const UsersList = () => {
                   <th>Email</th>
                   <th>Nhóm</th>
                   <th>Trạng thái</th>
+                  <th>Hoạt động</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
@@ -275,20 +431,37 @@ export const UsersList = () => {
                           {user.is_active === 1 ? "Đang hoạt động" : "Tạm khóa"}
                         </span>
                       </td>
+                      <td>{user.last_login_at}</td>
                       <td>
                         <div className="btn-group">
-                          <button className="btn btn-sm btn-warning">
+                          <button
+                            className="btn btn-sm btn-warning"
+                            onClick={() => handleEditUser(user)}
+                          >
                             <i className="fas fa-edit"></i> Sửa
                           </button>
                           <button
                             className="btn btn-sm btn-danger"
-                            onClick={() => handleDelete(user.id)}
+                            onClick={() => 
+                              handleDelete(
+                                user.id, 
+                                user.name, 
+                                user.group_role
+                              )
+                            }
                           >
                             <i className="fas fa-trash-alt"></i> Xóa
                           </button>
                           <button
                             className="btn btn-sm btn-dark"
-                            onClick={() => handleToggleActive(user.id)}
+                            onClick={() =>
+                              handleToggleActive(
+                                user.id,
+                                user.is_active,
+                                user.name,
+                                user.group_role
+                              )
+                            }
                           >
                             <i className="fas fa-lock"></i>{" "}
                             {user.is_active ? "Khóa" : "Mở"}
