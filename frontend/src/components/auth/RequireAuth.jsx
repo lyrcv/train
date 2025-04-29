@@ -8,7 +8,7 @@ export const RequireAuth = ({ children }) => {
   const { user } = useContext(AuthContext);
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;

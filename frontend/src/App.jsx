@@ -1,14 +1,13 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import Home from "./components/frontend/Home";
-import UsersList from "./components/frontend/UsersList";
-import ProductsList from "./components/frontend/ProductsList";
-import Login from "./components/auth/Login";
+import Home from "./pages/Home";
+import UsersList from "./pages/Users/UsersList";
+import ProductsList from "./pages/ProductsList";
+import Login from "./pages/Auth/Login";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { RedirectIfAuthenticated } from "./components/auth/RedirectIfAuthenticated";
-import "./assets/css/style.scss";
+import "./assets/styles/style.scss";
 import { ToastContainer } from "react-toastify";
-import Dashboard from "./components/frontend/Dashboard";
 
 function App() {
   return (

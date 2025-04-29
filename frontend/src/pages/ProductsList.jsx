@@ -1,7 +1,7 @@
 // Products Management Component
 
 import React from "react";
-import Layout from "../common/Layout";
+import Layout from "../components/layout/Layout";
 
 export const ProductsList = () => {
   return (

@@ -60,9 +60,13 @@ class UserController extends Controller
             'group_role' => 'required|string'
         ], [
             // Tùy chỉnh thông báo lỗi
-            'email.email' => 'Email không đúng định dạng.',
-            'email.unique' => 'Email được nhập đã đăng kí người dùng.',
-            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.'
+            'name.required' => __('validation.required', ['attribute' => 'Tên']),
+            'email.required' => __('validation.required', ['attribute' => 'Email']),
+            'email.email' => __('validation.email', ['attribute' => 'Email']),
+            'email.unique' => __('validation.unique', ['attribute' => 'Email']),
+            'password.required' => __('validation.required', ['attribute' => 'Mật khẩu']),
+            'password.min' => __('validation.min.string', ['attribute' => 'Mật khẩu', 'min' => 6]),
+            'group_role.required' => __('validation.required', ['attribute' => 'Vai trò']),
         ]);
 
         if ($validator->fails()) {
@@ -87,7 +91,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => '200',
-            'message' => 'Người dùng đã được thêm thành công.',
+            'message' => __('user.created_success'),
             'user' => $user,
         ], 200);
     }
@@ -100,7 +104,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => '404',
-                'message' => 'Người dùng không tồn tại.',
+                'message' =>  __('user.not_found'),
             ], 404);
         }
 
@@ -111,7 +115,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => '200',
-            'message' => 'Thông tin người dùng đã được cập nhật.',
+            'message' =>  __('user.updated_success'),
             'user' => $user,
         ], 200);
     }
@@ -124,7 +128,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => '404',
-                'message' => 'Người dùng không tồn tại.',
+                'message' => __('user.not_found'),
             ], 404);
         }
 
@@ -133,7 +137,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => '200',
-            'message' => 'Người dùng đã bị xóa.',
+            'message' => __('user.deleted_success'),
         ], 200);
     }
 
@@ -145,7 +149,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => '404',
-                'message' => 'Người dùng không tồn tại.',
+                'message' => __('user.not_found'),
             ], 404);
         }
 
@@ -155,7 +159,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => '200',
-            'message' => $user->is_active ? 'Tài khoản đã được kích hoạt.' : 'Tài khoản đã bị khóa.',
+            'message' => $user->is_active ? __('user.activated') : __('user.deactivated'),
         ], 200);
     }
 }

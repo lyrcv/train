@@ -17,16 +17,16 @@ class AuthController extends Controller
             'password' => 'required',
         ], [
             // Tùy chỉnh thông báo lỗi
-            'email.required' => 'Email không được để trống.',
-            'email.email' => 'Email không đúng định dạng.',
-            'password.required' => 'Mật khẩu không được để trống.',
+            'email.required' => __('validation.required', ['attribute' => 'email']),
+            'email.email' => __('validation.email', ['attribute' => 'email']),
+            'password.required' => __('validation.required', ['attribute' => 'password']),
         ]);
 
         // Nếu dữ liệu không hợp lệ, trả về lỗi 400 - Bad Request
         if($validator->fails()) {
             return response()->json([
                 'status' => '400',
-                'message' => 'Dữ liệu không hợp lệ.',
+                'message' => __('login.invalid_data'),
                 'errors' => $validator->errors(),
             ], 400);
         }
@@ -39,7 +39,7 @@ class AuthController extends Controller
             if ($user->is_active != 1) {
                 return response()->json([
                     'status' => '403',
-                    'message' => 'Tài khoản đăng nhập đang bị khóa.',
+                    'message' => __('login.account_locked'),
                 ], 403);
             }
 
@@ -47,7 +47,7 @@ class AuthController extends Controller
             if ($user->is_delete == 1) {
                 return response()->json([
                     'status' => '403',
-                    'message' => 'Tài khoản đăng nhập đang bị xóa.',
+                    'message' => __('login.account_deleted'),
                 ], 403);
             }
 
@@ -62,7 +62,7 @@ class AuthController extends Controller
             // Trả về thông tin người dùng và token
             return response()->json([
                 'status' => '200',
-                'message' => 'Đăng nhập thành công',
+                'message' => __('login.login_success'),
                 'token' => $token,
                 'user' => [
                     'id' => $user->id,
@@ -75,7 +75,7 @@ class AuthController extends Controller
             // Nếu thông tin đăng nhập không đúng, trả về lỗi 401 - Unauthorized
             return response()->json([
                 'status' => '401',
-                'message' => 'Email hoặc mật khẩu không đúng',
+                'message' => __('login.login_failed'),
             ], 401);
         }
     }

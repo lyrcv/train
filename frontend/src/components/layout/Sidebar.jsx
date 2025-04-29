@@ -3,7 +3,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-export const Dashboard = () => {
+export const Sidebar = () => {
   return (
     <div className="d-flex flex-column bg-white border-end shadow-sm min-vh-100 p-4" style={{ width: "240px", top: 0, left: 0 }}>
       <h6 className="mb-3">📊 Dashboard</h6>
@@ -23,4 +23,4 @@ export const Dashboard = () => {
   );
 }
 
-export default Dashboard
+export default Sidebar

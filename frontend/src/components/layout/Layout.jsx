@@ -3,7 +3,7 @@
 import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
-import Dashboard from "../frontend/Dashboard";
+import Sidebar from "./Sidebar";
 
 export const Layout = ({ children }) => {
   return (
@@ -14,7 +14,7 @@ export const Layout = ({ children }) => {
   <div className="row">
     {/* Sidebar */}
     <div className="col-md-3 col-lg-2 bg-white border-end shadow-sm min-vh-100 p-0">
-      <Dashboard />
+      <Sidebar />
     </div>
 
     {/* Nội dung chính */}
