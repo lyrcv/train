@@ -32,21 +32,39 @@ export const UserList = () => {
 
   const loadUsers = async (page = 1) => {
     setIsLoading(true);
-
+    let isCache = false; // Biến theo dõi xem có phải từ cache
+  
     try {
       const result = await fetchUsers(search, perPage, page);
-      setUsers(result.data);
-      setPagination({
-        currentPage: result.current_page,
-        totalPages: result.last_page,
-        perPage,
-      });
+  
+      if (result.fromCache) {
+        isCache = true; // Dữ liệu lấy từ cache
+        console.log("Dữ liệu được lấy từ cache");
+        toast.info("⚡ Dữ liệu được lấy từ cache", {
+          position: "bottom-right",  // Đảm bảo vị trí hiển thị đúng
+          autoClose: 5000,           // Tự động đóng sau 5 giây
+          hideProgressBar: true,     // Ẩn thanh tiến độ
+        });
+      } else {
+        setUsers(result.data);
+        setPagination({
+          currentPage: result.current_page,
+          totalPages: result.last_page,
+          perPage,
+        });
+      }
+  
+      // Nếu lấy từ cache, bạn có thể hiển thị thông báo
+      if (isCache) {
+        console.log("Dữ liệu được lấy từ cache");       
+      }
     } catch {
       toast.error(userListMessages.errorLoad);
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   useEffect(() => {
     const offset = (pagination.currentPage - 1) * pagination.perPage;

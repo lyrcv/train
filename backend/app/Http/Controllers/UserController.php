@@ -19,7 +19,16 @@ class UserController extends Controller
             ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo (mới nhất lên đầu)
             ->paginate($perPage);
 
-        return response()->json($users);
+        $etag = md5(json_encode($users));
+
+        if ($request->header('If-None-Match') === $etag) {
+            return response('', 304)
+                ->header('Cache-Control', 'private, max-age=60, must-revalidate');
+        }
+
+        return response()->json($users)
+            ->header('ETag', $etag)
+            ->header('Cache-Control', 'private, max-age=60, must-revalidate');
     }
 
     public function search(Request $request)
@@ -44,9 +53,22 @@ class UserController extends Controller
             $query->where('is_active', $request->status);
         }
 
-        $users = $query->paginate($perPage);
+        $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-        return response()->json($users);
+        // 👉 Tạo ETag từ dữ liệu + filter
+        $etag = md5(json_encode([
+            'data' => $users,
+            'filters' => $request->only(['name', 'email', 'group', 'status', 'per_page', 'page'])
+        ]));
+
+        if ($request->header('If-None-Match') === $etag) {
+            return response('', 304)
+                ->header('Cache-Control', 'private, max-age=60, must-revalidate');
+        }
+
+        return response()->json($users)
+            ->header('ETag', $etag)
+            ->header('Cache-Control', 'private, max-age=60, must-revalidate');
     }
 
 

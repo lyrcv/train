@@ -3,6 +3,8 @@ import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { userServiceMessages } from "../constants/messages/userServiceMessages";
 
+let lastEtag = null; 
+
 const getToken = () => {
   const userInfo = JSON.parse(localStorage.getItem("userInfo")) || JSON.parse(sessionStorage.getItem("userInfo"));
   return userInfo?.token || null;
@@ -22,11 +24,29 @@ export const fetchUsers = async (search, perPage, page) => {
     status: search.status,
   }).toString();
 
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+
+  // Gửi ETag nếu có
+  if (lastEtag) {
+    headers['If-None-Match'] = lastEtag;
+  }
+
   const response = await fetch(`${apiUrl}${endpoint}?${query}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers,
   });
 
+  if (response.status === 304) {
+    return { fromCache: true }; // Không có thay đổi
+  }
+
   if (!response.ok) throw new Error(userServiceMessages.fetchError);
+
+  // Lưu lại ETag mới
+  lastEtag = response.headers.get("ETag");
+
   return await response.json();
 };
 
