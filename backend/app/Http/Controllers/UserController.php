@@ -11,51 +11,34 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 20); // Số bản ghi mỗi trang, mặc định 20
-        $currentUserId = Auth::user()->id; // Lấy ID người dùng đang đăng nhập
+        $perPage = $request->input('per_page', 20); // Số bản ghi mỗi trang
+        $currentUserId = Auth::user()->id;
 
-        $users = User::where('is_delete', 0)
-            ->where('id', '!=', $currentUserId) // Không hiển thị người dùng đang đăng nhập
-            ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo (mới nhất lên đầu)
-            ->paginate($perPage);
+        // Bắt đầu query người dùng (trừ bản thân)
+        $query = User::where('is_delete', 0)
+            ->where('id', '!=', $currentUserId);
 
-        $etag = md5(json_encode($users));
-
-        if ($request->header('If-None-Match') === $etag) {
-            return response('', 304)
-                ->header('Cache-Control', 'private, max-age=60, must-revalidate');
-        }
-
-        return response()->json($users)
-            ->header('ETag', $etag)
-            ->header('Cache-Control', 'private, max-age=60, must-revalidate');
-    }
-
-    public function search(Request $request)
-    {
-        $perPage = $request->input('per_page', 20); // Dùng per_page từ request
-
-        $query = User::where('is_delete', 0);
-
-        if ($request->has('name')) {
+        // Áp dụng các filter nếu có
+        if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->name . '%');
         }
 
-        if ($request->has('email')) {
+        if ($request->filled('email')) {
             $query->where('email', 'like', '%' . $request->email . '%');
         }
 
-        if ($request->has('group') && $request->group != '') {
+        if ($request->filled('group')) {
             $query->where('group_role', $request->group);
         }
 
-        if ($request->has('status') && $request->status != '') {
+        if ($request->filled('status')) {
             $query->where('is_active', $request->status);
         }
 
+        // Phân trang + sắp xếp
         $users = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-        // 👉 Tạo ETag từ dữ liệu + filter
+        // Tạo ETag dựa trên dữ liệu + filter
         $etag = md5(json_encode([
             'data' => $users,
             'filters' => $request->only(['name', 'email', 'group', 'status', 'per_page', 'page'])
@@ -70,7 +53,6 @@ class UserController extends Controller
             ->header('ETag', $etag)
             ->header('Cache-Control', 'private, max-age=60, must-revalidate');
     }
-
 
     // Thêm mới người dùng
     public function store(Request $request)

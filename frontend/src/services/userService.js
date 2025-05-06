@@ -12,8 +12,6 @@ const getToken = () => {
 
 export const fetchUsers = async (search, perPage, page) => {
   const token = getToken();
-  const hasFilter = search.name || search.email || search.group || search.status;
-  const endpoint = hasFilter ? "users/search" : "users";
 
   const query = new URLSearchParams({
     page,
@@ -34,7 +32,7 @@ export const fetchUsers = async (search, perPage, page) => {
     headers['If-None-Match'] = lastEtag;
   }
 
-  const response = await fetch(`${apiUrl}${endpoint}?${query}`, {
+  const response = await fetch(`${apiUrl}users?${query}`, {
     headers,
   });
 
