@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -59,6 +60,9 @@ class AuthController extends Controller
             // Tạo token cho người dùng
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            $isRemember = $request->boolean('remember');
+            $minutes = $isRemember ? (60 * 24 * 7) : 60;
+
             // Trả về thông tin người dùng và token
             return response()->json([
                 'status' => '200',
@@ -70,7 +74,9 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'group_role' => $user->group_role,
                 ],
-            ], 200);
+            ], 200)->cookie(
+                cookie('token', $token, $minutes, null, null, true, true, false, 'Strict')
+            );
         } else {
             // Nếu thông tin đăng nhập không đúng, trả về lỗi 401 - Unauthorized
             return response()->json([
@@ -78,5 +84,13 @@ class AuthController extends Controller
                 'message' => __('login.login_failed'),
             ], 401);
         }
+    }
+
+    public function logout(Request $request)
+    {
+        return response()->json([
+            'status' => '200',
+            'message' => __('login.logout_success'),
+        ])->cookie(Cookie::forget('token'));
     }
 }

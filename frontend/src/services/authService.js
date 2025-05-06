@@ -3,11 +3,22 @@ import { apiUrl } from "../components/common/http";
 
 export const login = async (data) => {
   try {
+    const xsrfToken = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("XSRF-TOKEN"))
+    ?.split("=")[1];
+
+    await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      credentials: "include",
+      "X-XSRF-TOKEN": xsrfToken,
+    });
+
     const response = await fetch(`${apiUrl}login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify(data),
     });
 

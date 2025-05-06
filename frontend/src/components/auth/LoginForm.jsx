@@ -20,11 +20,11 @@ const LoginForm = () => {
       if (result.success) {
         const userInfo = result.userInfo;
 
-        if (data.remember) {
-          localStorage.setItem("userInfo", JSON.stringify(userInfo));
-        } else {
-          sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
-        }
+        // if (data.remember) {
+        //   localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        // } else {
+        //   sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+        // }
 
         login(userInfo, data.remember);
         navigate("/users");

@@ -5,14 +5,7 @@ import { userServiceMessages } from "../constants/messages/userServiceMessages";
 
 let lastEtag = null; 
 
-const getToken = () => {
-  const userInfo = JSON.parse(localStorage.getItem("userInfo")) || JSON.parse(sessionStorage.getItem("userInfo"));
-  return userInfo?.token || null;
-};
-
 export const fetchUsers = async (search, perPage, page) => {
-  const token = getToken();
-
   const query = new URLSearchParams({
     page,
     per_page: perPage,
@@ -23,7 +16,6 @@ export const fetchUsers = async (search, perPage, page) => {
   }).toString();
 
   const headers = {
-    Authorization: `Bearer ${token}`,
     Accept: "application/json",
   };
 
@@ -32,8 +24,13 @@ export const fetchUsers = async (search, perPage, page) => {
     headers['If-None-Match'] = lastEtag;
   }
 
+  await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+    credentials: "include",
+  });
+
   const response = await fetch(`${apiUrl}users?${query}`, {
     headers,
+    credentials: 'include',
   });
 
   if (response.status === 304) {
@@ -58,12 +55,16 @@ export const addUser = (setUsers, pagination, reload) => {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
+        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+          credentials: "include",
+        });
+
         const res = await fetch(`${apiUrl}users`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${getToken()}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify(result.value),
         });
 
@@ -113,12 +114,16 @@ export const updateUser = (user, reload, pagination) => {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
+        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+          credentials: "include",
+        });
+
         const res = await fetch(`${apiUrl}users/${user.id}`, {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${getToken()}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify(result.value),
         });
 
@@ -150,9 +155,13 @@ export const deleteUser = (id, name, role, reload, pagination) => {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
+        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+          credentials: "include",
+        });
+
         const res = await fetch(`${apiUrl}users/${id}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${getToken()}` },
+          credentials: "include",
         });
 
         if (!res.ok) throw new Error();
@@ -181,9 +190,13 @@ export const toggleUserActive = (id, isActive, name, role, reload, pagination) =
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
+        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+          credentials: "include",
+        });
+
         const res = await fetch(`${apiUrl}users/toggle-active/${id}`, {
           method: "PUT",
-          headers: { Authorization: `Bearer ${getToken()}` },
+          credentials: "include",
         });
 
         const data = await res.json();

@@ -29,11 +29,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Hàm logout xóa thông tin người dùng
-  const logout = () => {
-    localStorage.removeItem("userInfo");
-    sessionStorage.removeItem("userInfo");
+  const logout = async () => {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  
+    // Xóa state và local/session storage nếu cần
+    localStorage.removeItem('userInfo');
+    sessionStorage.removeItem('userInfo');
     setUser(null);
   };
+  
 
   return (
     <AuthContext.Provider

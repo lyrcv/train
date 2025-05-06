@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
 
 Route::post('/login', [AuthController::class, 'authenticate']);
+Route::post('/logout', [AuthController::class, 'logout']);
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
